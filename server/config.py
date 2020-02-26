@@ -20,3 +20,5 @@ class ProductionConfig(BaseConfig):
     """Production configuration."""
     SECRET_KEY = os.getenv('SECRET_KEY')
     DEBUG = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'sqlite:///' + os.path.join(basedir, 'app.db')
