@@ -29,11 +29,15 @@ class User(db.Model):
             "tweets": [tweet.to_json() for tweet in self.tweets]
         }
 
+    def embeddings(self):
+        return [tweet.embedding for tweet in self.tweets]
+
 
 class Tweet(db.Model):
     __tablename__ = 'tweets'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     text = db.Column(db.String)
+    embedding = db.Column(db.PickleType)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
 
     def to_json(self):

@@ -8,17 +8,17 @@ verify_ssl = true
 [packages]
 coverage = "*"
 psycopg2 = "*"
-Flask = "*"
-Flask-Migrate = "*"
-Flask-Script = "*"
-Flask-SQLAlchemy = "*"
-SQLAlchemy = "*"
+flask = "*"
+flask-migrate = "*"
+flask-script = "*"
+flask-sqlalchemy = "*"
+sqlalchemy = "*"
 basilica = "*"
 tweepy = "*"
 redis = "*"
 scikit-learn = "*"
-dot-env = "*"
 python-dotenv = "*"
+flask-cors = "*"
 
 [requires]
 python_version = "3.6"

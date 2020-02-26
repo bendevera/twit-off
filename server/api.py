@@ -1,15 +1,34 @@
 from server import app as API, db  
 from server.models import User, Tweet 
+from server.util import predict_user
 from flask import jsonify, make_response, request
 import tweepy
+import basilica
 import os 
 import dotenv
 dotenv.load_dotenv()
 
-auth = tweepy.OAuthHandler(os.getenv('twitter_key'), os.getenv('twitter_secret'))
-auth.set_access_token(os.getenv('twitter_access_token'), os.getenv('twitter_access_secret'))
+TWITTER_KEY = os.getenv('twitter_key')
+TWITTER_SECRET = os.getenv('twitter_secret')
+TWITTER_ACCESS_TOKEN = os.getenv('twitter_access_token')
+TWITTER_ACCESS_SECRET = os.getenv('twitter_access_secret')
 
+auth = tweepy.OAuthHandler(TWITTER_KEY, TWITTER_SECRET)
+auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET)
 twitter = tweepy.API(auth)
+
+BASILICA_KEY = os.getenv('basilica_key')
+
+
+def get_sentence_vector(sentence):
+    with basilica.Connection(BASILICA_KEY) as c:
+        embedding = c.embed_sentence(sentence, model='twitter')
+        # if saving
+        # filename = EMB_DIR+text_class+'-'+str(cell['index'])+'.emb'
+        # print(f"Saving {filename} | {text_class} | {cell['index']}")
+        # with open(filename, 'w') as f:
+        #     f.write(json.dumps(embedding))
+        return embedding
 
 
 @API.route('/api')
@@ -54,8 +73,10 @@ def users():
             data = []
             print(f"{user.screen_name} has {len(tweets)} tweets.")
             for item in tweets:
+                embedding = get_sentence_vector(item.text)
                 item = Tweet(
                     text=item.text,
+                    embedding=embedding,
                     user_id=user.id
                 )
                 user.tweets.append(item)
@@ -87,3 +108,24 @@ def users_by_id(id):
         'message': 'No user with id {}'.format(id)
     }
     return make_response(jsonify(responseObject)), 404
+
+
+@API.route('/api/predict', methods=['POST'])
+def predict():
+    payload = request.get_json()
+    try: 
+        embedding = get_sentence_vector(payload['sentence'])
+        user = predict_user(payload['id_one'], payload['id_two'], embedding)
+        print(user)
+        responseObject = {
+            'status': 'success',
+            'data': user
+        }
+        return make_response(jsonify(responseObject)), 200
+    except Exception as e:
+        print(e)
+        responseObject = {
+            'status': 'failure',
+            'message': str(e)
+        }
+        return make_response(jsonify(responseObject)), 404

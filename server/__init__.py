@@ -1,5 +1,6 @@
 from flask import Flask 
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 import os
 
 
@@ -11,6 +12,6 @@ app_settings = os.getenv(
 app.config.from_object(app_settings)
 
 db = SQLAlchemy(app)
-
+CORS(app)
 
 import server.api
