@@ -7,7 +7,7 @@ import os
 app = Flask(__name__)
 app_settings = os.getenv(
     'APP_SETTINGS',
-    'server.config.DevelopmentConfig'
+    'server.config.ProductionConfig'
 )
 app.config.from_object(app_settings)
 

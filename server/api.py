@@ -1,7 +1,7 @@
 from server import app as API, db  
 from server.models import User, Tweet 
 from server.util import predict_user
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response, request, send_from_directory
 import tweepy
 import basilica
 import os 
@@ -30,6 +30,21 @@ def get_sentence_vector(sentence):
         #     f.write(json.dumps(embedding))
         return embedding
 
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+
+# Serve React App
+@API.route('/', defaults={'path': ''})
+@API.route('/<path:path>')
+def serve(path):
+    print(BASE_PATH + '/' + 'build/' + path)
+    if path != "" and os.path.exists(BASE_PATH + '/' + 'build/' + path):
+        print("SENDING OTHER")
+        return send_from_directory(os.path.join(BASE_PATH, 'build'), path)
+    else:
+        print("SENDING INDEX")
+        print(os.path.join(BASE_PATH, 'index.html'))
+        return send_from_directory(os.path.join(BASE_PATH, 'build'), 'index.html')
+
 
 @API.route('/api')
 def api_ping():
@@ -55,7 +70,14 @@ def users():
         # user = twitter.get_user(screen_name)
         # tweets = twitter.user_timeline(user['id'])
         test_user = User.query.filter_by(screen_name=screen_name).first()
-        tweets = twitter.user_timeline(screen_name)
+        twitter_user = twitter.get_user(screen_name)
+        tweets = twitter_user.timeline(
+            count=100, 
+            exclude_replies=True, 
+            include_rts=False, 
+            tweet_mode='extended'
+        )
+        # tweets = twitter.user_timeline(screen_name)
         if len(tweets) > 0:
             if test_user:
                 user = test_user
@@ -73,9 +95,9 @@ def users():
             data = []
             print(f"{user.screen_name} has {len(tweets)} tweets.")
             for item in tweets:
-                embedding = get_sentence_vector(item.text)
+                embedding = get_sentence_vector(item.full_text)
                 item = Tweet(
-                    text=item.text,
+                    text=item.full_text,
                     embedding=embedding,
                     user_id=user.id
                 )
