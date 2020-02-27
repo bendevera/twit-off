@@ -4,6 +4,7 @@ from server.util import predict_user
 from flask import jsonify, make_response, request, send_from_directory
 import tweepy
 import basilica
+from threading import Thread
 import os 
 import dotenv
 dotenv.load_dotenv()
@@ -66,6 +67,20 @@ def users():
         }
         return make_response(jsonify(responseObject)), 200
     elif request.method == 'POST':
+        def grab_tweets(tweets, user_id):
+            with API.app_context():
+                user = User.query.filter_by(id=user_id).first()
+                data = []
+                for item in tweets:
+                    embedding = get_sentence_vector(item.full_text)
+                    item = Tweet(
+                        text=item.full_text,
+                        embedding=embedding,
+                        user_id=user.id
+                    )
+                    user.tweets.append(item)
+                db.session.commit()
+                print(f"{user.screen_name} has {len(user.tweets)} tweets.")
         screen_name = request.get_json()['screen_name']
         # user = twitter.get_user(screen_name)
         # tweets = twitter.user_timeline(user['id'])
@@ -92,21 +107,13 @@ def users():
                     description=tweets[0].author.description
                 )
                 db.session.add(user)
-            data = []
-            print(f"{user.screen_name} has {len(tweets)} tweets.")
-            for item in tweets:
-                embedding = get_sentence_vector(item.full_text)
-                item = Tweet(
-                    text=item.full_text,
-                    embedding=embedding,
-                    user_id=user.id
-                )
-                user.tweets.append(item)
             db.session.commit()
             responseObject = {
                 'status': 'success', 
                 'data': user.to_json()
             }
+            thread = Thread(target=grab_tweets, kwargs={'tweets': tweets, 'user_id': user.id})
+            thread.start()
             return make_response(jsonify(responseObject)), 200
         else:
             responseObject = {
