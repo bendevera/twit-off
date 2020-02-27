@@ -72,7 +72,7 @@ def users():
         test_user = User.query.filter_by(screen_name=screen_name).first()
         twitter_user = twitter.get_user(screen_name)
         tweets = twitter_user.timeline(
-            count=100, 
+            count=50, 
             exclude_replies=True, 
             include_rts=False, 
             tweet_mode='extended'
